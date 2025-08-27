@@ -7,7 +7,10 @@ interface WelcomeCardProps {
   isCreating: boolean;
 }
 
-export const WelcomeCard = ({ setActiveTab, isCreating }: WelcomeCardProps) => {
+export const WelcomeCard = (
+    { setActiveTab, isCreating }: WelcomeCardProps
+
+) => {
   return (
     <Card className="bg-white shadow-sm">
       <CardHeader className="px-4 sm:px-6">

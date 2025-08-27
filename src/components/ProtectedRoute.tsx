@@ -1,5 +1,6 @@
+// components/ProtectedRoute.tsx
 "use client";
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../hooks/useAuth';
 
@@ -10,10 +11,16 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuthenticated, isLoadingUser } = useAuth();
   const router = useRouter();
+  const [shouldRedirect, setShouldRedirect] = useState(false);
 
   useEffect(() => {
     if (!isLoadingUser && !isAuthenticated) {
-      router.push('/login');
+      const timer = setTimeout(() => {
+        setShouldRedirect(true);
+        router.push('/login');
+      }, 100);
+      
+      return () => clearTimeout(timer);
     }
   }, [isAuthenticated, isLoadingUser, router]);
 
@@ -22,15 +29,15 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600">Checking authentication...</p>
         </div>
       </div>
     );
   }
 
-  if (!isAuthenticated) {
-    return null; // Will redirect in useEffect
+  if (shouldRedirect || !isAuthenticated) {
+    return null;
   }
 
   return <>{children}</>;
-} 
+}

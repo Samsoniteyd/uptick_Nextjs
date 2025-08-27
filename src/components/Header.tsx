@@ -1,28 +1,27 @@
+"use client"
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LogOut, Menu, X } from "lucide-react";
-// import { useAppSelector } from "@/store";
 import { useAuth } from "@/hooks/useAuth";
 
 interface HeaderProps {
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
-  isLoggingOut: boolean;
-  handleLogout: () => void;
+  onLogout?:() => void;
+  isLoggingOut?: boolean;
 }
 
-export const Header = ({
-  mobileMenuOpen,
-  setMobileMenuOpen,
-  isLoggingOut,
-  handleLogout,
-}: HeaderProps) => {
-  const { user } = useAuth();
+export const Header = ({ mobileMenuOpen, setMobileMenuOpen,
+    onLogout,
+    isLoggingOut= false
+ }: HeaderProps) => {
+  const { user, logout } = useAuth(); // <-- directly from hook
 
   return (
     <header className="bg-white shadow-sm border-b sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between py-3 sm:py-4">
+          {/* Brand */}
           <div className="flex items-center space-x-2 sm:space-x-3">
             <div className="p-1.5 sm:p-2 bg-blue-600 rounded-lg cursor-pointer">
               {/* <Scissors className="h-5 w-5 sm:h-6 sm:w-6 text-white" /> */}
@@ -30,11 +29,12 @@ export const Header = ({
             <div>
               <h1 className="text-lg sm:text-2xl font-bold text-gray-900">TailorPro</h1>
               <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">
-                Welcome, {user?.name}
+                Welcome, {user?.name ?? "Guest"}
               </p>
             </div>
           </div>
 
+          {/* Mobile menu button */}
           <div className="flex items-center space-x-2 sm:hidden">
             <Button
               variant="ghost"
@@ -50,14 +50,18 @@ export const Header = ({
             </Button>
           </div>
 
+          {/* Desktop menu */}
           <div className="hidden sm:flex items-center space-x-4">
-            <Badge variant="outline" className="text-blue-600 border-blue-600 text-xs sm:text-sm cursor-default">
+            <Badge
+              variant="outline"
+              className="text-blue-600 border-blue-600 text-xs sm:text-sm cursor-default"
+            >
               Professional Edition
             </Badge>
             <Button
               variant="outline"
-              onClick={handleLogout}
-              disabled={isLoggingOut}
+              onClick={logout}
+            //   disabled={isLoggingOut}
               className="flex items-center space-x-2 text-sm cursor-pointer"
               size="sm"
             >
@@ -72,29 +76,38 @@ export const Header = ({
                   <span className="hidden lg:inline">Logout</span>
                 </>
               )}
+              <>
+               
+                </>
             </Button>
           </div>
         </div>
 
+        {/* Mobile dropdown */}
         {mobileMenuOpen && (
           <div className="sm:hidden border-t bg-white pb-3">
             <div className="pt-3 space-y-3">
-              <p className="text-sm text-gray-600 px-1">Welcome, {user?.name}</p>
+              <p className="text-sm text-gray-600 px-1">
+                Welcome, {user?.name ?? "Guest"}
+              </p>
               <div className="flex items-center justify-between">
-                <Badge variant="outline" className="text-blue-600 border-blue-600 text-xs cursor-default">
+                <Badge
+                  variant="outline"
+                  className="text-blue-600 border-blue-600 text-xs cursor-default"
+                >
                   Professional Edition
                 </Badge>
                 <Button
                   variant="outline"
                   onClick={() => {
-                    handleLogout();
+                    logout();
                     setMobileMenuOpen(false);
                   }}
-                  disabled={isLoggingOut}
+                //   disabled={isLoggingOut}
                   className="flex items-center space-x-2 cursor-pointer"
                   size="sm"
                 >
-                  {isLoggingOut ? (
+                  {/* {isLoggingOut ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
                       <span>Logging out...</span>
@@ -104,7 +117,11 @@ export const Header = ({
                       <LogOut className="h-4 w-4" />
                       <span>Logout</span>
                     </>
-                  )}
+                  )} */}
+                   <>
+                      <LogOut className="h-4 w-4" />
+                      <span>Logout</span>
+                    </>
                 </Button>
               </div>
             </div>

@@ -10,6 +10,13 @@ export interface User {
   updatedAt: string;
 }
 
+export type CreateUserData = {
+  name: string;
+  email?: string;
+  role?: string;
+  password: string;
+};
+
 export interface UserFormProps {
   isLogin: boolean;
   initialData?: {
@@ -42,7 +49,7 @@ export interface AuthResponse {
 }
 
 export interface Requisition {
-  _id: string;
+  id: string;
   user: string | User;
   name: string;
   description?: string;
@@ -66,8 +73,8 @@ export interface Requisition {
     phone?: string;
     email?: string;
   };
-  status: 'pending' | 'in-progress' | 'completed' | 'cancelled';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+   status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT',
   dueDate?: string;
   completedDate?: string;
   notes: Array<{
@@ -102,7 +109,8 @@ export interface CreateRequisitionData {
     phone?: string;
     email?: string;
   };
-  priority?: 'low' | 'medium' | 'high' | 'urgent';
+ 
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT',
   dueDate?: string;
 }
 
@@ -133,7 +141,8 @@ export interface Customer {
   phone?: string;
   dateOfOrder: string;
   dateOfCollection: string;
-  status: 'pending' | 'in-progress' | 'ready' | 'collected';
+   status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT',
   measurements: {
     tops: {
       chest: string;

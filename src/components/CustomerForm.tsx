@@ -1,3 +1,4 @@
+"use client"
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Customer } from "@/types/customer";
 import { Save, X, Search } from "lucide-react";
+import { useRequisitions } from "@/hooks/useRequisitions";
+import { toast } from "sonner";
 
 interface CustomerFormProps {
   customer?: Customer | null;
@@ -17,19 +20,22 @@ interface CustomerFormProps {
 }
 
 const CustomerForm: React.FC<CustomerFormProps> = ({ customer, customers = [], onSave, onCancel }) => {
+  const { createRequisition, updateRequisition, operationLoading } = useRequisitions();
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Customer[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   
-  const [formData, setFormData] = useState<Omit<Customer, 'id' | 'createdAt'>>({
-    title: '',
-    name: '',
-    email: '',
-    phone: '',
-    dateOfOrder: new Date().toISOString().split('T')[0],
-    dateOfCollection: '',
-    status: 'pending',
-    measurements: {
+  const [formData, setFormData] = useState<Customer>({
+    id: customer?.id || "",
+    name: customer?.name || "",
+    email: customer?.email || "",
+    phone: customer?.phone || "",
+    dateOfOrder: customer?.dateOfOrder || new Date().toISOString().split("T")[0],
+    dateOfCollection: customer?.dateOfCollection || "",
+    status: customer?.status || "PENDING",
+    priority: customer?.priority || "MEDIUM",
+    measurements: customer?.measurements || {
       tops: {
         chest: '',
         shoulders: '',
@@ -52,7 +58,8 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, customers = [], o
         sleeve: ''
       }
     },
-    notes: ''
+    notes: customer?.notes || '',
+    createdAt: customer?.createdAt || new Date().toISOString(),
   });
 
   useEffect(() => {
@@ -71,13 +78,14 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, customers = [], o
 
   const clearForm = () => {
     setFormData({
-      title: '',
+      id: "",
       name: '',
       email: '',
       phone: '',
       dateOfOrder: new Date().toISOString().split('T')[0],
       dateOfCollection: '',
-      status: 'pending',
+      status: 'PENDING',
+      priority: 'MEDIUM',
       measurements: {
         tops: {
           chest: '',
@@ -101,7 +109,8 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, customers = [], o
           sleeve: ''
         }
       },
-      notes: ''
+      notes: '',
+      createdAt: new Date().toISOString(),
     });
     setSearchTerm('');
     setShowSearchResults(false);
@@ -109,15 +118,17 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, customers = [], o
 
   const loadCustomerData = (selectedCustomer: Customer) => {
     setFormData({
-      title: selectedCustomer.title || '',
+      id: selectedCustomer.id || "",
       name: selectedCustomer.name,
       email: selectedCustomer.email || '',
       phone: selectedCustomer.phone || '',
       dateOfOrder: new Date().toISOString().split('T')[0],
       dateOfCollection: '',
-      status: 'pending',
+      status: 'PENDING',
+      priority: selectedCustomer.priority || 'MEDIUM',
       measurements: selectedCustomer.measurements,
-      notes: selectedCustomer.notes || ''
+      notes: selectedCustomer.notes || '',
+      createdAt: selectedCustomer.createdAt || new Date().toISOString(),
     });
     setSearchTerm('');
     setShowSearchResults(false);
@@ -140,15 +151,17 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, customers = [], o
   useEffect(() => {
     if (customer) {
       setFormData({
-        title: customer.title || '',
+        id: customer.id || "",
         name: customer.name,
         email: customer.email || '',
         phone: customer.phone || '',
         dateOfOrder: customer.dateOfOrder,
         dateOfCollection: customer.dateOfCollection,
         status: customer.status,
+        priority: customer.priority || 'MEDIUM',
         measurements: customer.measurements,
-        notes: customer.notes || ''
+        notes: customer.notes || '',
+        createdAt: customer.createdAt || new Date().toISOString(),
       });
     }
   }, [customer]);
@@ -173,18 +186,64 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, customers = [], o
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const toNumber = (value: string): number | undefined => {
+    if (!value || value.trim() === "") return undefined;
+    const num = parseFloat(value);
+    return isNaN(num) ? undefined : num;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const customerData: Customer = {
-      ...formData,
-      id: customer?.id || '',
-      createdAt: customer?.createdAt || new Date().toISOString()
+
+    const requisitionData = {
+      name: formData.name,
+      description: formData.notes || undefined,
+      measurements: {
+        chest: toNumber(formData.measurements.tops.chest),
+        shoulders: toNumber(formData.measurements.tops.shoulders),
+        sleeveLengthLong: toNumber(formData.measurements.tops.sleeveLength),
+        sleeveLengthShort: toNumber(formData.measurements.tops.sleeveLengthShort),
+        topLength: toNumber(formData.measurements.tops.topLength),
+        neck: toNumber(formData.measurements.tops.neck),
+        tommy: toNumber(formData.measurements.tops.tommy),
+        hip: toNumber(formData.measurements.tops.hip),
+        waist: toNumber(formData.measurements.trouser.waist),
+        length: toNumber(formData.measurements.trouser.length),
+        lap: toNumber(formData.measurements.trouser.lap),
+        base: toNumber(formData.measurements.trouser.base),
+        agbadaLength: toNumber(formData.measurements.agbada.length),
+        agbadaSleeve: toNumber(formData.measurements.agbada.sleeve),
+      },
+      contactInfo: {
+        email: formData.email || undefined,
+        phone: formData.phone || undefined,
+      },
+      priority: formData.priority,
+      status: formData.status,
+      dueDate: formData.dateOfCollection || undefined,
     };
-    
-    onSave(customerData);
-    
-    if (!customer) {
-      clearForm();
+        
+    try {
+      if (customer?.id) {
+        await updateRequisition({ 
+          id: customer.id, 
+          data: requisitionData 
+        });
+        toast.success("Customer updated successfully!");
+      } else {
+        await createRequisition(requisitionData);
+        toast.success("New customer created successfully!");
+      }
+      onCancel();
+    } catch (error: any) {
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        errors.forEach((err: any) => {
+          toast.error(`${err.field}: ${err.message}`);
+        });
+      } else {
+        toast.error("Failed to save customer");
+      }
     }
   };
 
@@ -208,7 +267,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, customers = [], o
             </div>
           </CardHeader>
           <CardContent className="p-4 sm:p-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
+         <form onSubmit={handleSubmit} className="space-y-6">
               {!customer && (
                 <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <h3 className="text-base sm:text-lg font-semibold text-gray-800">
@@ -238,7 +297,8 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, customers = [], o
                           </div>
                         ))}
                       </div>
-                    )}
+                    )
+                    }
                   </div>
                   <p className="text-sm text-gray-600">
                     Search to load existing customer measurements, or fill out the form below for a new customer.
@@ -250,17 +310,6 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, customers = [], o
                 <h3 className="text-base sm:text-lg font-semibold text-gray-800 border-b pb-2">
                   Customer Information
                 </h3>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="title" className="text-sm font-medium">Title</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => handleInputChange('title', e.target.value)}
-                    placeholder="e.g., Mr., Mrs., Dr."
-                    className="border-gray-300 h-11"
-                  />
-                </div>
                 
                 <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-4">
                   <div className="space-y-2">
@@ -294,7 +343,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, customers = [], o
                   </div>
                 </div>
 
-                <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-4">
+                <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="dateOfOrder" className="text-sm font-medium">Date Of Order *</Label>
                     <Input
@@ -316,17 +365,37 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, customers = [], o
                       className="border-gray-300 h-11"
                     />
                   </div>
-                  <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+                  <div className="space-y-2">
                     <Label htmlFor="status" className="text-sm font-medium">Status</Label>
-                    <Select value={formData.status} onValueChange={(value: any) => handleInputChange('status', value)}>
+                    <Select 
+                      value={formData.status} 
+                      onValueChange={(value: any) => handleInputChange('status', value)}
+                    >
                       <SelectTrigger className="h-11">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="in-progress">In Progress</SelectItem>
-                        <SelectItem value="ready">Ready for Collection</SelectItem>
-                        <SelectItem value="collected">Collected</SelectItem>
+                        <SelectItem value="PENDING">Pending</SelectItem>
+                        <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                        <SelectItem value="COMPLETED">Completed</SelectItem>
+                        <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="priority" className="text-sm font-medium">Priority</Label>
+                    <Select 
+                      value={formData.priority || "MEDIUM"} 
+                      onValueChange={(value: any) => handleInputChange('priority', value)}
+                    >
+                      <SelectTrigger className="h-11">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="LOW">Low Priority</SelectItem>
+                        <SelectItem value="MEDIUM">Medium Priority</SelectItem>
+                        <SelectItem value="HIGH">High Priority</SelectItem>
+                        <SelectItem value="URGENT">Urgent</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -443,11 +512,17 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, customers = [], o
                   </Button>
                   <Button 
                     type="submit" 
-                    disabled={!isFormValid()}
+                    disabled={!isFormValid() || operationLoading.create || operationLoading.update}
                     className="w-full sm:w-auto h-11 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Customer
+                    {operationLoading.create || operationLoading.update ? (
+                      "Saving..."
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        {customer ? "Update Customer" : "Save Customer"}
+                      </>
+                    )}
                   </Button>
                   {!customer && (
                     <Button 
@@ -461,8 +536,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, customers = [], o
                   )}
                 </div>
               </div>
-            </form>
-          </CardContent>
+            </form>          </CardContent>
         </Card>
       </div>
     </div>

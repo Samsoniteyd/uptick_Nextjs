@@ -53,48 +53,47 @@ const RegisterPage = () => {
     }
   }, [isAuthenticated, router]);
 
-  const onSubmit = async (data: RegisterFormInputs) => {
-    try {
-      setRegisterError('');
-      
-      const registerData = {
-        name: data.name.trim(),
-        email: data.email.trim(),
-        phone: data.phone?.trim() || undefined,
-        password: data.password,
-      };
+ const onSubmit = async (data: RegisterFormInputs) => {
+  try {
+    setRegisterError('');
 
-      await new Promise<void>((resolve, reject) => {
-        // registerUser(registerData, {
-        //   onSuccess: () => {
-        //     console.log('Registration successful');
-        //     setSuccessMessage('Account created successfully! Redirecting...');
-        //     // Clear form only on success
-        //     setValue('name', '');
-        //     setValue('email', '');
-        //     setValue('phone', '');
-        //     setValue('password', '');
-        //     setValue('confirmPassword', '');
-        //     resolve();
-        //     setTimeout(() => {
-        //       router.push('/users');
-        //     }, 1500);
-        //   },
-        //   onError: (error) => {
-        //     console.error('Registration failed:', error);
-        //     // Set error but DON'T clear form
-        //     setRegisterError(error.message || 'Registration failed. Please try again.');
-        //     // Optionally clear only passwords on registration failure
-        //     setValue('password', '');
-        //     setValue('confirmPassword', '');
-        //     reject(error);
-        //   }
-        // });
-      });
-    } catch (error) {
-      console.error('Registration submission error:', error);
+    const registerData = {
+      name: data.name.trim(),
+      email: data.email.trim(),
+      phone: data.phone?.trim() || undefined,
+      password: data.password,
+    };
+
+    await registerUser(registerData);
+
+    setSuccessMessage('Account created successfully! Redirecting...');
+
+    // clear form only on success
+    setValue('name', '');
+    setValue('email', '');
+    setValue('phone', '');
+    setValue('password', '');
+    setValue('confirmPassword', '');
+
+    setTimeout(() => {
+      router.push('/login');
+    }, 1500);
+
+  } catch (error: unknown) {
+    console.error('Registration failed:', error);
+
+    if (error instanceof Error) {
+      setRegisterError(error.message);
+    } else {
+      setRegisterError('Registration failed. Please try again.');
     }
-  };
+
+    // optionally clear only passwords on failure
+    setValue('password', '');
+    setValue('confirmPassword', '');
+  }
+};
+
 
   const getErrorMessage = (error: any) => {
     if (error instanceof Error) return error.message;

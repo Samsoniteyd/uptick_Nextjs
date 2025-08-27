@@ -1,3 +1,4 @@
+"use client"
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Customer } from "@/types/customer";
 import { Requisition } from "@/types";
-// import { requisitionToCustomer } from "@/lib/mappers";
 import { Search, Edit, Trash2, ChevronLeft, ChevronRight, Filter, SlidersHorizontal, Eye, Grid3X3, List } from "lucide-react";
 
 interface CustomerListProps {
@@ -14,6 +14,7 @@ interface CustomerListProps {
   onEdit: (requisition: Requisition) => void;
   onView: (requisitions: Requisition[]) => void;
   onDelete: (id: string) => void;
+  onCreate?: () => void;
 }
 
 interface GroupedCustomer {
@@ -24,6 +25,48 @@ interface GroupedCustomer {
   latestOrder: Customer;
   allRequisitions: Requisition[];
 }
+
+// Helper function to convert backend requisition to customer
+const requisitionToCustomer = (req: Requisition): Customer => {
+  const measurements = req.measurements as any;
+  const contactInfo = req.contactInfo as any;
+  
+  return {
+    id: req.id, 
+    name: req.name,
+    email: contactInfo?.email || '',
+    phone: contactInfo?.phone || '',
+    dateOfOrder: req.createdAt?.split('T')[0] || '',
+    dateOfCollection: req.dueDate?.split('T')[0] || '',
+    status: req.status || "PENDING",
+    priority: req.priority || "MEDIUM",
+    measurements: {
+      tops: {
+        chest: measurements?.chest?.toString() || '',
+        shoulders: measurements?.shoulders?.toString() || '',
+        sleeveLength: measurements?.sleeveLengthLong?.toString() || '',
+        sleeveLengthShort: measurements?.sleeveLengthShort?.toString() || '',
+        topLength: measurements?.topLength?.toString() || '',
+        neck: measurements?.neck?.toString() || '',
+        tommy: measurements?.tommy?.toString() || '',
+        hip: measurements?.hip?.toString() || '',
+      },
+      trouser: {
+        waist: measurements?.waist?.toString() || '',
+        length: measurements?.length?.toString() || '',
+        lap: measurements?.lap?.toString() || '',
+        hip: measurements?.hip?.toString() || '',
+        base: measurements?.base?.toString() || '',
+      },
+      agbada: {
+        length: measurements?.agbadaLength?.toString() || '',
+        sleeve: measurements?.agbadaSleeve?.toString() || '',
+      }
+    },
+    notes: req.description || '',
+    createdAt: req.createdAt
+  };
+};
 
 const CustomerList: React.FC<CustomerListProps> = ({ requisitions, onEdit, onView, onDelete }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,35 +79,36 @@ const CustomerList: React.FC<CustomerListProps> = ({ requisitions, onEdit, onVie
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(9);
 
+  // Group customers by name and email
   const groupedCustomers = useMemo(() => {
-    // const customers = requisitions.map(requisitionToCustomer);
+    const customers = requisitions.map(requisitionToCustomer);
     const customerMap = new Map<string, GroupedCustomer>();
 
-    // customers.forEach(customer => {
-    //   const key = `${customer.name.toLowerCase()}-${(customer.email || '').toLowerCase()}`;
-    //   const requisition = requisitions.find(req => req._id === customer.id);
+    customers.forEach(customer => {
+      const key = `${customer.name.toLowerCase()}-${(customer.email || '').toLowerCase()}`;
+      const requisition = requisitions.find(req => req.id === customer.id); // Use id instead of _id
       
-    //   if (customerMap.has(key)) {
-    //     const existing = customerMap.get(key)!;
-    //     existing.measurementCount += 1;
-    //     existing.allRequisitions.push(requisition!);
+      if (customerMap.has(key)) {
+        const existing = customerMap.get(key)!;
+        existing.measurementCount += 1;
+        existing.allRequisitions.push(requisition!);
         
-    //     // Update with latest order if this one is more recent
-    //     if (new Date(customer.dateOfOrder) > new Date(existing.latestOrder.dateOfOrder)) {
-    //       existing.latestOrder = customer;
-    //       existing.phone = customer.phone || existing.phone;
-    //     }
-    //   } else {
-    //     customerMap.set(key, {
-    //       name: customer.name,
-    //       email: customer.email || '',
-    //       phone: customer.phone || '',
-    //       measurementCount: 1,
-    //       latestOrder: customer,
-    //       allRequisitions: [requisition!]
-    //     });
-    //   }
-    // });
+        // Update with latest order if this one is more recent
+        if (new Date(customer.dateOfOrder) > new Date(existing.latestOrder.dateOfOrder)) {
+          existing.latestOrder = customer;
+          existing.phone = customer.phone || existing.phone;
+        }
+      } else {
+        customerMap.set(key, {
+          name: customer.name,
+          email: customer.email || '',
+          phone: customer.phone || '',
+          measurementCount: 1,
+          latestOrder: customer,
+          allRequisitions: [requisition!]
+        });
+      }
+    });
 
     return Array.from(customerMap.values());
   }, [requisitions]);
@@ -130,7 +174,7 @@ const CustomerList: React.FC<CustomerListProps> = ({ requisitions, onEdit, onVie
   };
 
   const handleEdit = (customer: GroupedCustomer) => {
-    const requisition = customer.allRequisitions.find(req => req._id === customer.latestOrder.id);
+    const requisition = customer.allRequisitions.find(req => req.id === customer.latestOrder.id); // Use id instead of _id
     if (requisition) {
       onEdit(requisition);
     }

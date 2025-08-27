@@ -52,7 +52,7 @@ const requisitionSlice = createSlice({
       state.error = null;
     },
     updateRequisitionSuccess(state, action: PayloadAction<Requisition>) {
-      const index = state.requisitions.findIndex(req => req._id === action.payload._id);
+      const index = state.requisitions.findIndex(req => req.id === action.payload.id);
       if (index !== -1) {
         state.requisitions[index] = action.payload;
       }
@@ -67,7 +67,7 @@ const requisitionSlice = createSlice({
       state.error = null;
     },
     deleteRequisitionSuccess(state, action: PayloadAction<string>) {
-      state.requisitions = state.requisitions.filter(req => req._id !== action.payload);
+      state.requisitions = state.requisitions.filter(req => req.id !== action.payload);
       state.isDeleting = false;
     },
     deleteRequisitionFailure(state, action: PayloadAction<string>) {
