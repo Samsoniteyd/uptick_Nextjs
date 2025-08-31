@@ -35,7 +35,6 @@ const UsersPage = () => {
   const [viewingRequisitions, setViewingRequisitions] = useState<Requisition[] | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Use the loading states from the hook
   const isCreating = operationLoading.create;
   const isUpdating = operationLoading.update;
   const isDeleting = operationLoading.delete;
@@ -82,7 +81,6 @@ const UsersPage = () => {
     createdAt: req.createdAt || new Date().toISOString()
   }));
 
-  // Create stats object that matches the expected props
   const stats = {
     totalCustomers: customers.length,
     pendingOrders: customers.filter(c => c.status === 'PENDING').length,

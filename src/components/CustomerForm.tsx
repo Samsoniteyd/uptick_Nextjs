@@ -74,7 +74,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, customers = [], o
       setSearchResults([]);
       setShowSearchResults(false);
     }
-  }, [searchTerm, customers]);
+  }, [searchTerm]);
 
   const clearForm = () => {
     setFormData({
